@@ -1,0 +1,45 @@
+{
+    "project": "Foam Quality Prediction",
+    "author": "Gonzalo Civita",
+    "target": "Nivel de espumado",
+    "optimization": "GridSearchCV",
+    "cross_validation": 5,
+    "selected_model": "Decision Tree",
+    "models": {
+        "KNN": {
+            "best_params": {
+                "n_neighbors": 7,
+                "weights": "distance"
+            },
+            "best_score": 0.8984615384615384
+        },
+        "Decision Tree": {
+            "best_params": {
+                "max_depth": 20,
+                "min_samples_split": 2
+            },
+            "best_score": 0.9144615384615384
+        },
+        "SVM": {
+            "best_params": {
+                "C": 10,
+                "kernel": "linear"
+            },
+            "best_score": 0.8590769230769231
+        },
+        "Naive Bayes": {
+            "best_params": {
+                "var_smoothing": 1e-07
+            },
+            "best_score": 0.7264615384615385
+        }
+    },
+    "features": [
+        "O2 ing carbo",
+        "Set factor CO2",
+        "Volumen CO2",
+        "Temp botella",
+        "Temp Carbo",
+        "Sin Azucar"
+    ]
+}

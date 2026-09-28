@@ -1,0 +1,14 @@
+
+# Requerimientos depurados (versiones conservadas cuando se encontraron en el entorno)
+numpy==2.0.1
+pandas==2.2.2
+matplotlib==3.9.1
+kaleido==1.3.0
+
+# Paquetes detectados en las notebooks pero no encontrados en el entorno actual; mantener sin versión
+# para que se instalen en la versión más reciente disponible o añade versiones manualmente si lo prefieres.
+plotly
+scikit-learn
+joblib
+
+# Nota: `google.colab` es parte del entorno de Google Colab y no suele listarse aquí.
