@@ -18,11 +18,14 @@ label{font-size:12px;color:var(--mut);display:flex;flex-direction:column;gap:4px
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px}
 .card h2{font-size:14px;margin:0 0 10px}.cv{position:relative;height:250px}
 .ins{margin-top:12px;font-size:14px;line-height:1.55}.ins li{margin-bottom:4px}
+.sec{font-size:18px;margin:28px 0 4px}.note{color:var(--mut);font-size:13px;margin:0 0 12px}
+.mc p{font-size:13px;line-height:1.5;margin:0;color:var(--mut)}.mc h2{color:var(--tx)}
+table.cm{border-collapse:collapse;width:100%;font-size:13px;text-align:center}.cm th{color:var(--mut);font-weight:500;padding:6px}.cm td{padding:12px 6px;border:1px solid var(--bd)}
+.warn{border-left:4px solid #f0ad4e}
 </style></head><body><main>
 <h1>Nivel de espumado en línea de llenado</h1>
 <p class="sub">171 controles de producción (~11 semanas) · escala de espumado 0 (nada) a 3 (máximo) · datos agregados y anonimizados</p>
 <div class="bar">
-<label>Producto<select id="fp"><option value="">Todos</option><option value="0">Producto A</option><option value="1">Producto B</option></select></label>
 <label>Endulzante<select id="fs"><option value="">Todos</option><option value="1">Azúcar</option><option value="2">JMAF</option><option value="3">Sin azúcar</option></select></label>
 </div>
 <div class="kpis">
@@ -41,13 +44,51 @@ label{font-size:12px;color:var(--mut);display:flex;flex-direction:column;gap:4px
 <div class="card"><h2>Espumado medio por semana</h2><div class="cv"><canvas id="c5"></canvas></div></div>
 </div>
 <div class="card ins"><h2>Hallazgos (todo el dataset)</h2><ul>
-<li>La velocidad de llenado tiene correlación de −0,94 con el espumado; las temperaturas de botella y carbonatador, de +0,85 y +0,87.</li>
+<li>Los niveles de espumado se definen por rangos de velocidad de llenado (correlación de −0,94); las temperaturas de botella y carbonatador correlacionan +0,85 y +0,87 con el nivel.</li>
 <li>Velocidad y temperatura están muy relacionadas entre sí (líneas más lentas y más calientes), por lo que separar el efecto de cada una requiere cuidado en el modelo.</li>
-<li>Sin azúcar promedia el espumado más alto y JMAF el más bajo; el Producto B muestra más espumado que el A.</li>
+<li>Sin azúcar promedia el espumado más alto y JMAF el más bajo.</li>
 </ul></div>
+
+<h2 class="sec">¿Cómo aprenden los modelos de estos datos?</h2>
+<p class="note">Entradas: 6 variables de proceso estandarizadas (O₂ ingreso al carbonatador, factor CO₂, volumen CO₂, temperatura de botella, temperatura del carbonatador y si es sin azúcar). La velocidad de llenado <b>no</b> se usa como entrada, porque los niveles de espumado se definen justamente por rangos de velocidad: incluirla sería darle la respuesta al modelo. Se entrena con el 75 % de los controles y se evalúa con el 25 % restante (43 controles); los hiperparámetros se eligen por validación cruzada de 5 particiones.</p>
+<div class="grid">
+<div class="card mc"><h2>Árbol de decisión</h2><p>Hace preguntas de sí/no sobre una variable a la vez (por ejemplo, ¿temperatura del carbonatador mayor que X?). Se apoya sobre todo en las temperaturas. Acierta el 100 % en entrenamiento y baja en prueba: memoriza parte de los datos.</p></div>
+<div class="card mc"><h2>KNN</h2><p>Para un control nuevo busca los 7 más parecidos y decide por votación ponderada por cercanía. Funciona porque condiciones de proceso parecidas dan espumado parecido.</p></div>
+<div class="card mc"><h2>SVM</h2><p>Con el kernel lineal elegido traza fronteras rectas entre niveles en el espacio de las 6 variables. Le cuesta el nivel 2, que queda entre otros dos.</p></div>
+<div class="card mc"><h2>Naive Bayes</h2><p>Calcula qué tan probable es cada valor observado dentro de cada nivel y elige el más probable. Supone variables independientes, y acá temperaturas y CO₂ están relacionadas, por eso rinde menos.</p></div>
+</div>
+<div class="bar" style="margin-top:16px"><label>Modelo<select id="msel"></select></label></div>
+<div class="grid">
+<div class="card"><h2>Importancia de variables (caída de exactitud al mezclarla, pts)</h2><div class="cv" style="height:300px"><canvas id="i1"></canvas></div></div>
+<div class="card"><h2>Matriz de confusión en prueba (real vs. predicho)</h2><div id="cmt"></div></div>
+</div>
+<h2 class="sec">KPIs de los modelos</h2>
+<p class="note">Beneficio neto calculado con los valores del notebook (TP $1,0 · TN $0,6 · FP −$0,8 · FN −$0,6) sobre el conjunto de prueba.</p>
+<div class="kpis">
+<div class="card k"><b id="kp1"></b><span>Exactitud en prueba</span></div>
+<div class="card k"><b id="kp2"></b><span>Exactitud validación cruzada</span></div>
+<div class="card k"><b id="kp3"></b><span>F1 macro en prueba</span></div>
+<div class="card k"><b id="kp4"></b><span>Beneficio neto ($)</span></div>
+</div>
+<div class="grid">
+<div class="card"><h2>Exactitud: entrenamiento, validación cruzada y prueba (%)</h2><div class="cv"><canvas id="kc"></canvas></div></div>
+<div class="card"><h2>Beneficio neto por modelo ($)</h2><div class="cv"><canvas id="kn"></canvas></div></div>
+</div>
+<h2 class="sec">Impacto de negocio (escenario simulado)</h2>
+<p class="note">Escenario mensual del notebook: 8 h/día, 30 días, precio $1 y costo $0,60 por botella, costos fijos $50.000. Los valores "después" son supuestos de aplicar el modelo, no mediciones.</p>
+<div class="kpis">
+<div class="card k"><b>+20,7 %</b><span>Velocidad de producción (19.621 → 23.678 bot/h)</span></div>
+<div class="card k"><b>−70 %</b><span>Tasa de desperdicio (10 % → 3 %)</span></div>
+<div class="card k"><b>+36,7 %</b><span>Beneficio neto mensual</span></div>
+</div>
+<div class="grid">
+<div class="card"><h2>Velocidad media (bot/h)</h2><div class="cv"><canvas id="b1"></canvas></div></div>
+<div class="card"><h2>Tasa de desperdicio (%)</h2><div class="cv"><canvas id="b2"></canvas></div></div>
+<div class="card"><h2>Beneficio neto mensual ($)</h2><div class="cv"><canvas id="b3"></canvas></div></div>
+</div>
 </main>
 <script>
-const D={"c":[[0,1,0,30,161.01,716930],[0,1,1,28,200.8,618772],[0,1,2,26,231.81,496350],[0,1,3,32,326.72,446200],[0,2,0,6,32.4,143945],[0,2,1,20,138.4,453089],[0,2,2,5,38.1,102090],[1,3,1,6,32.3,136810],[1,3,2,3,20.4,51999],[1,3,3,15,131.1,189088]],"t":[[0,1,0,25,0],[0,1,1,32,33],[0,1,2,33,74],[0,1,3,26,69],[0,2,0,4,0],[0,2,1,22,23],[0,2,2,5,7],[1,3,0,5,5],[1,3,1,4,7],[1,3,2,12,36],[1,3,3,3,9]],"v":[[0,1,0,32,96],[0,1,1,17,34],[0,1,2,30,39],[0,1,3,37,7],[0,2,2,9,14],[0,2,3,22,16],[1,3,0,15,45],[1,3,1,3,6],[1,3,3,6,6]],"w":[[0,1,0,63,60],[0,1,2,4,6],[0,1,3,6,2],[0,1,5,5,10],[0,1,6,7,14],[0,1,7,7,21],[0,1,8,11,24],[0,1,9,7,21],[0,1,10,6,18],[0,2,0,11,13],[0,2,1,7,6],[0,2,2,3,1],[0,2,3,1,1],[0,2,4,7,7],[0,2,5,2,2],[1,3,0,8,19],[1,3,10,16,38]]};
+const D={"c":[[0,1,0,30,161.01,716930],[0,1,1,28,200.8,618772],[0,1,2,26,231.81,496350],[0,1,3,32,326.72,446200],[0,2,0,6,32.4,143945],[0,2,1,20,138.4,453089],[0,2,2,5,38.1,102090],[0,3,1,6,32.3,136810],[0,3,2,3,20.4,51999],[0,3,3,15,131.1,189088]],"t":[[0,1,0,25,0],[0,1,1,32,33],[0,1,2,33,74],[0,1,3,26,69],[0,2,0,4,0],[0,2,1,22,23],[0,2,2,5,7],[0,3,0,5,5],[0,3,1,4,7],[0,3,2,12,36],[0,3,3,3,9]],"v":[[0,1,0,32,96],[0,1,1,17,34],[0,1,2,30,39],[0,1,3,37,7],[0,2,2,9,14],[0,2,3,22,16],[0,3,0,15,45],[0,3,1,3,6],[0,3,3,6,6]],"w":[[0,1,0,63,60],[0,1,2,4,6],[0,1,3,6,2],[0,1,5,5,10],[0,1,6,7,14],[0,1,7,7,21],[0,1,8,11,24],[0,1,9,7,21],[0,1,10,6,18],[0,2,0,11,13],[0,2,1,7,6],[0,2,2,3,1],[0,2,3,1,1],[0,2,4,7,7],[0,2,5,2,2],[0,3,0,8,19],[0,3,10,16,38]]};
 const COL=['#4a90d9','#5cb85c','#f0ad4e','#d9534f'];
 const tc='#8a8a84',gc='rgba(128,128,120,.2)';
 Chart.defaults.color=tc;Chart.defaults.font.family='system-ui,sans-serif';
@@ -64,7 +105,7 @@ const c5=mk('c5',{type:'line',data:{labels:[],datasets:[{data:[],borderColor:'#d
 const S=(a,i)=>a.reduce((x,r)=>x+r[i],0);
 const ratio=(a,n,d)=>{const N=S(a,n);return N?+(S(a,d)/N).toFixed(2):null};
 function upd(){
-const p=fp.value,s=fs.value,F=a=>a.filter(r=>(p===''||r[0]==p)&&(s===''||r[1]==s));
+const s=fs.value,F=a=>a.filter(r=>s===''||r[1]==s);
 const C=F(D.c),N=S(C,3),sy=C.reduce((x,r)=>x+r[2]*r[3],0);
 k1.textContent=N;k2.textContent=N?(sy/N).toFixed(2):'–';
 k3.textContent=N?(100*S(C.filter(r=>r[2]==3),3)/N).toFixed(0)+'%':'–';
@@ -81,5 +122,24 @@ const W=F(D.w),ws=[...new Set(W.map(r=>r[2]))].sort((a,b)=>a-b);
 c5.data.labels=ws.map(w=>w+1);c5.data.datasets[0].data=ws.map(w=>ratio(W.filter(r=>r[2]==w),3,4));
 [c1,c2,c3,c6,c4,c5].forEach(c=>c.update());
 }
-fp.onchange=fs.onchange=upd;upd();
+fs.onchange=upd;upd();
+
+const ML={"m": {"KNN": {"tr": 100.0, "cv": 89.8, "te": 90.7, "f1": 89.9, "nb": 108.4, "cm": [[9, 0, 0, 0], [0, 13, 1, 0], [0, 1, 6, 1], [0, 0, 1, 11]], "imp": [14.0, 9.8, 14.7, 29.1, 29.6, 9.5]}, "Árbol de decisión": {"tr": 100.0, "cv": 91.4, "te": 93.0, "f1": 92.2, "nb": 111.4, "cm": [[9, 0, 0, 0], [0, 13, 1, 0], [0, 1, 6, 1], [0, 0, 0, 12]], "imp": [8.7, 5.8, 16.1, 21.2, 52.4, 0.9]}, "SVM": {"tr": 89.1, "cv": 85.9, "te": 88.4, "f1": 86.1, "nb": 105.4, "cm": [[9, 0, 0, 0], [0, 13, 1, 0], [0, 3, 4, 1], [0, 0, 0, 12]], "imp": [0.8, 7.1, 6.0, 40.9, 44.8, 17.6]}, "Naive Bayes": {"tr": 75.8, "cv": 72.6, "te": 83.7, "f1": 81.5, "nb": 99.4, "cm": [[9, 0, 0, 0], [2, 11, 1, 0], [0, 3, 4, 1], [0, 0, 0, 12]], "imp": [5.3, 14.6, 0.4, 19.9, 25.0, 11.6]}}, "f": ["O₂ ingreso carbo", "Factor CO₂ (set)", "Volumen CO₂", "Temp. botella", "Temp. carbonatador", "Sin azúcar"]},MN=Object.keys(ML.m);
+MN.forEach(n=>msel.add(new Option(n,n)));
+const i1=mk('i1',{type:'bar',data:{labels:[],datasets:[{data:[],backgroundColor:'#4a90d9'}]},options:{...base,indexAxis:'y',scales:{x:sc('Puntos de exactitud'),y:sc()}}});
+const leg={responsive:true,maintainAspectRatio:false};
+const kc=mk('kc',{type:'bar',data:{labels:MN,datasets:[['Entrenamiento','tr','#a0a0a0'],['Validación cruzada','cv','#f0ad4e'],['Prueba','te','#4a90d9']].map(a=>({label:a[0],data:MN.map(n=>ML.m[n][a[1]]),backgroundColor:a[2]}))},options:{...leg,scales:{x:sc(),y:sc('%',{min:50,max:100})}}});
+const kn=mk('kn',{type:'bar',data:{labels:MN,datasets:[{data:MN.map(n=>ML.m[n].nb),backgroundColor:['#4a90d9','#5cb85c','#f0ad4e','#d9534f']}]},options:{...base,scales:{x:sc(),y:sc('$',{min:80})}}});
+const ba=(id,d,f)=>mk(id,{type:'bar',data:{labels:['Antes','Después'],datasets:[{data:d,backgroundColor:['#a0a0a0','#5cb85c']}]},options:{...base,scales:{x:sc(),y:sc(f,{beginAtZero:true})}}});
+ba('b1',[19621,23678],'bot/h');ba('b2',[10,3],'%');ba('b3',[1551074,2120800],'$');
+function updML(){
+const m=ML.m[msel.value];
+const o=ML.f.map((f,i)=>[f,m.imp[i]]).sort((a,b)=>b[1]-a[1]);
+i1.data.labels=o.map(x=>x[0]);i1.data.datasets[0].data=o.map(x=>x[1]);i1.update();
+let t='<table class="cm"><tr><th></th>'+[0,1,2,3].map(i=>'<th>Pred. '+i+'</th>').join('')+'</tr>';
+m.cm.forEach((r,i)=>{const s=r.reduce((a,b)=>a+b,0)||1;t+='<tr><th>Real '+i+'</th>'+r.map((v,q)=>'<td style="background:rgba(74,144,217,'+(v/s*.75).toFixed(2)+')">'+v+'</td>').join('')+'</tr>'});
+cmt.innerHTML=t+'</table>';
+kp1.textContent=m.te+'%';kp2.textContent=m.cv+'%';kp3.textContent=m.f1+'%';kp4.textContent=m.nb.toLocaleString('es-AR');
+}
+msel.onchange=updML;updML();
 </script></body></html>
